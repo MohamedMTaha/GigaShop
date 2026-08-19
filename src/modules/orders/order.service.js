@@ -3,6 +3,8 @@ const db = require("../../config/db");
 const orderRepository = require("./order.repository");
 const productRepository = require("../products/product.repository");
 
+const stripeService = require("../../services/stripeService");
+
 const NotFoundError = require("../../errors/NotFoundError");
 const ConflictError = require("../../errors/ConflictError");
 
@@ -15,8 +17,6 @@ const ORDER_STATUSES = [
 	"delivered",
 	"cancelled",
 ];
-
-const PAYMENT_STATUSES = ["pending", "paid", "failed", "refunded"];
 
 function validateOrderStatusTransition(currentStatus, newStatus) {
 	const allowedTransitions = {
@@ -90,44 +90,16 @@ async function getOrdersByStatus(status) {
 	return orderRepository.findOrdersByStatus(status);
 }
 
-async function updateOrderPaymentStatus(orderId, status) {
-	orderId = validateId(orderId, "Order ID");
-
-	status = validateString(status, "Payment status", {
-		min: 3,
-		max: 20,
-	}).toLowerCase();
-
-	if (!PAYMENT_STATUSES.includes(status)) {
-		throw new ConflictError("Invalid payment status");
-	}
-
-	return db.withTransaction(async (client) => {
-		const order = await orderRepository.findOrderByIdForUpdate(orderId, client);
-
-		if (!order) {
-			throw new NotFoundError("Order not found");
-		}
-
-		if (order.orderStatus === "cancelled") {
-			throw new ConflictError(
-				"Cancelled order payment status cannot be changed",
-			);
-		}
-
-		const updatedOrder = await orderRepository.updateOrderPaymentStatus(
-			orderId,
-			status,
-			client,
-		);
-
-		if (!updatedOrder) {
-			throw new ConflictError("Payment status was not updated");
-		}
-
-		return updatedOrder;
-	});
-}
+/*
+ * Payment status is no longer changed manually.
+ *
+ * Card payments are controlled by Stripe.
+ * Cash payments automatically become paid when
+ * the order is delivered.
+ *
+ * This function is kept exported for compatibility,
+ * but manual payment status updates are intentionally disabled.
+ */
 
 async function confirmOrder(orderId) {
 	orderId = validateId(orderId, "Order ID");
@@ -141,20 +113,13 @@ async function confirmOrder(orderId) {
 
 		validateOrderStatusTransition(order.orderStatus, "confirmed");
 
-		for (const item of order.orderItems) {
-			const updatedStock = await productRepository.decreaseProductStock(
-				item.productId,
-				item.quantity,
-				client,
-			);
-
-			if (updatedStock === null) {
-				throw new ConflictError(
-					`Not enough stock for product "${item.productName}"`,
-				);
-			}
-		}
-
+		/*
+		 * Stock was already decreased when the order was created.
+		 *
+		 * Admin confirmation ONLY changes the order status.
+		 *
+		 * No stock deduction happens here.
+		 */
 		const updatedOrder = await orderRepository.updateOrderStatus(
 			orderId,
 			"confirmed",
@@ -207,14 +172,43 @@ async function deliverOrder(orderId) {
 
 		validateOrderStatusTransition(order.orderStatus, "delivered");
 
-		const updatedOrder = await orderRepository.updateOrderStatus(
-			orderId,
-			"delivered",
-			client,
-		);
+		let updatedOrder;
+
+		/*
+		 * CASH
+		 *
+		 * Payment is collected when the order is delivered.
+		 *
+		 * Therefore:
+		 * order_status   = delivered
+		 * payment_status = paid
+		 *
+		 * Both changes happen inside the same transaction.
+		 */
+		if (order.paymentMethod === "cash") {
+			updatedOrder = await orderRepository.updateOrderPaymentAndStatus(
+				orderId,
+				"paid",
+				"delivered",
+				client,
+			);
+		} else {
+			/*
+			 * CARD
+			 *
+			 * Payment was already completed through Stripe.
+			 *
+			 * Only the order status changes.
+			 */
+			updatedOrder = await orderRepository.updateOrderStatus(
+				orderId,
+				"delivered",
+				client,
+			);
+		}
 
 		if (!updatedOrder) {
-			throw new ConflictError("Order status was not updated");
+			throw new ConflictError("Order was not delivered");
 		}
 
 		return updatedOrder;
@@ -231,40 +225,83 @@ async function cancelOrder(orderId) {
 			throw new NotFoundError("Order not found");
 		}
 
-		if (order.paymentMethod === "card" && order.paymentStatus === "paid") {
-			throw new ConflictError(
-				"Paid card orders cannot be cancelled until refund is implemented",
-			);
-		}
-
 		validateOrderStatusTransition(order.orderStatus, "cancelled");
 
-		const shouldRestoreStock = order.orderStatus === "confirmed";
-
-		if (shouldRestoreStock) {
-			for (const item of order.orderItems) {
-				const updatedStock = await productRepository.increaseProductStock(
-					item.productId,
-					item.quantity,
-					client,
+		/*
+		 * CARD + PAID
+		 *
+		 * The customer already paid through Stripe.
+		 *
+		 * Refund the payment before completing cancellation.
+		 */
+		if (order.paymentMethod === "card" && order.paymentStatus === "paid") {
+			if (!order.stripePaymentIntentId) {
+				throw new ConflictError(
+					"Stripe payment intent is missing for this order",
 				);
+			}
 
-				if (updatedStock === null) {
-					throw new ConflictError(
-						`Failed to restore stock for product "${item.productName}"`,
-					);
-				}
+			await stripeService.refundPayment(order.stripePaymentIntentId);
+		}
+
+		/*
+		 * Stock was already decreased when the order was created.
+		 *
+		 * Therefore cancellation restores stock.
+		 */
+		for (const item of order.orderItems) {
+			const updatedStock = await productRepository.increaseProductStock(
+				item.productId,
+				item.quantity,
+				client,
+			);
+
+			if (updatedStock === null) {
+				throw new ConflictError(
+					`Failed to restore stock for product "${item.productName}"`,
+				);
 			}
 		}
 
-		const updatedOrder = await orderRepository.updateOrderStatus(
-			orderId,
-			"cancelled",
-			client,
-		);
+		let updatedOrder;
+
+		/*
+		 * CARD + PAID
+		 *
+		 * Stripe refund succeeded.
+		 */
+		if (order.paymentMethod === "card" && order.paymentStatus === "paid") {
+			updatedOrder = await orderRepository.updateOrderPaymentAndStatus(
+				orderId,
+				"refunded",
+				"cancelled",
+				client,
+			);
+		} else if (order.paymentMethod === "cash") {
+			/*
+			 * CASH
+			 *
+			 * The customer has not paid yet.
+			 *
+			 * Since the order was cancelled,
+			 * the expected cash payment will never happen.
+			 */
+			updatedOrder = await orderRepository.updateOrderPaymentAndStatus(
+				orderId,
+				"failed",
+				"cancelled",
+				client,
+			);
+		} else {
+			updatedOrder = await orderRepository.updateOrderStatus(
+				orderId,
+				"cancelled",
+				client,
+			);
+		}
 
 		if (!updatedOrder) {
-			throw new ConflictError("Order status was not updated");
+			throw new ConflictError("Order was not cancelled");
 		}
 
 		return updatedOrder;
@@ -278,7 +315,6 @@ module.exports = {
 	getOrdersByUserId,
 	getAllOrders,
 	getOrdersByStatus,
-	updateOrderPaymentStatus,
 	validateOrderStatusTransition,
 	confirmOrder,
 	shipOrder,

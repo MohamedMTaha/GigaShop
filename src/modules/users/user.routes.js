@@ -20,6 +20,8 @@ router.get("/", authorize("admin"), userController.findAllUsers);
 
 router.get("/search", authorize("admin"), userController.findUserByEmail);
 
-router.get("/:id", authorize("admin"), userController.findUserById);
+router.get("/deleted", authorize("admin"), userController.findDeletedUsers);
+
+router.get("/:id", authorize("admin"), userController.findUserByIdForAdmin);
 
 module.exports = router;

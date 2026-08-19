@@ -83,23 +83,6 @@ async function getOrdersByStatus(req, res, next) {
 	}
 }
 
-async function updateOrderPaymentStatus(req, res, next) {
-	try {
-		const order = await orderService.updateOrderPaymentStatus(
-			Number(req.params.id),
-			req.body.status,
-		);
-
-		return res.status(200).json({
-			success: true,
-			message: "Order payment status updated successfully",
-			data: order,
-		});
-	} catch (error) {
-		next(error);
-	}
-}
-
 async function confirmOrder(req, res, next) {
 	try {
 		const order = await orderService.confirmOrder(Number(req.params.id));
@@ -163,7 +146,6 @@ module.exports = {
 	getOrdersByUserId,
 	getAllOrders,
 	getOrdersByStatus,
-	updateOrderPaymentStatus,
 	confirmOrder,
 	shipOrder,
 	deliverOrder,

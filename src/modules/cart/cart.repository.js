@@ -20,8 +20,29 @@ async function findCartByUserId(userId) {
 	};
 }
 
-async function createCart(userId) {
-	const result = await db.query(
+async function findCartByUserIdForUpdate(userId, client) {
+	const result = await client.query(
+		`SELECT id, user_id
+		FROM carts
+		WHERE user_id = $1
+		FOR UPDATE`,
+		[userId],
+	);
+
+	const row = result.rows[0];
+
+	if (!row) {
+		return null;
+	}
+
+	return {
+		id: row.id,
+		userId: row.user_id,
+	};
+}
+
+async function createCart(userId, client = db) {
+	const result = await client.query(
 		`INSERT INTO carts (user_id)
 		VALUES ($1)
 		ON CONFLICT (user_id)
@@ -36,7 +57,27 @@ async function createCart(userId) {
 		};
 	}
 
-	return findCartByUserId(userId);
+	if (client === db) {
+		return findCartByUserId(userId);
+	}
+
+	const existingCart = await client.query(
+		`SELECT id, user_id
+		FROM carts
+		WHERE user_id = $1`,
+		[userId],
+	);
+
+	const row = existingCart.rows[0];
+
+	if (!row) {
+		return null;
+	}
+
+	return {
+		id: row.id,
+		userId: row.user_id,
+	};
 }
 
 function mapCart(result) {
@@ -116,8 +157,8 @@ async function findCartDetailsForUpdate(userId, client) {
 	return mapCart(result);
 }
 
-async function findCartItem(cartId, productId) {
-	const result = await db.query(
+async function findCartItem(cartId, productId, client = db) {
+	const result = await client.query(
 		`SELECT id, quantity
 		FROM cart_items
 		WHERE cart_id = $1
@@ -137,8 +178,8 @@ async function findCartItem(cartId, productId) {
 	};
 }
 
-async function addCartItem(cartId, productId, quantity, stock) {
-	const result = await db.query(
+async function addCartItem(cartId, productId, quantity, stock, client = db) {
+	const result = await client.query(
 		`INSERT INTO cart_items (
 			cart_id,
 			product_id,
@@ -156,8 +197,13 @@ async function addCartItem(cartId, productId, quantity, stock) {
 	return result.rows[0] || null;
 }
 
-async function updateCartItemQuantity(cartItemId, productId, quantity) {
-	const result = await db.query(
+async function updateCartItemQuantity(
+	cartItemId,
+	productId,
+	quantity,
+	client = db,
+) {
+	const result = await client.query(
 		`UPDATE cart_items CI
 		SET quantity = $1
 		FROM products P
@@ -170,8 +216,8 @@ async function updateCartItemQuantity(cartItemId, productId, quantity) {
 	return result.rowCount;
 }
 
-async function removeCartItem(cartItemId) {
-	const result = await db.query(
+async function removeCartItem(cartItemId, client = db) {
+	const result = await client.query(
 		`DELETE FROM cart_items
 		WHERE id = $1`,
 		[cartItemId],
@@ -194,6 +240,7 @@ module.exports = {
 	findCartDetails,
 	findCartDetailsForUpdate,
 	findCartByUserId,
+	findCartByUserIdForUpdate,
 	createCart,
 	findCartItem,
 	addCartItem,

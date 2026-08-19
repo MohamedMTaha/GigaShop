@@ -38,16 +38,19 @@ function validateString(value, label, { min, max } = {}) {
 	return trimmed;
 }
 
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const EMAIL_REGEX =
+	/^[A-Za-z](?:[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]*)@[A-Za-z-]+(?:\.[A-Za-z-]+)+$/;
 
 function validateEmail(email, label = "Email") {
-	const trimmed = validateString(email, label, { min: 2 });
+	const trimmed = validateString(email, label, {
+		min: 5,
+		max: 254,
+	});
 
 	if (!EMAIL_REGEX.test(trimmed)) {
 		throw new ValidationError("Invalid email");
 	}
 
-	// Normalize so the same address is never stored/compared inconsistently.
 	return trimmed.toLowerCase();
 }
 
@@ -102,9 +105,9 @@ function validateDescription(description, label = "Description") {
 		if (trimmed.length === 0) {
 			description = null;
 		} else {
-			if (trimmed.length > 1000 || trimmed.length < 2) {
+			if (trimmed.length > 4096 || trimmed.length < 2) {
 				throw new ValidationError(
-					`${label} must be between 2 and 1000 characters`,
+					`${label} must be between 2 and 4096 characters`,
 				);
 			}
 
@@ -128,13 +131,89 @@ function validatePaymentMethod(paymentMethod) {
 }
 
 function validatePhone(phone, label = "Phone") {
-	const value = validateString(phone, label, {
-		min: 11,
-		max: 20,
+	if (typeof phone !== "string" || !/^\d+$/.test(phone)) {
+		throw new ValidationError(`${label} must be 11 Numbers`);
+	}
+
+	if (phone.length !== 11) {
+		throw new ValidationError(`${label} must be 11 Numbers`);
+	}
+
+	if (!/^(010|011|012|015)[0-9]{8}$/.test(phone)) {
+		throw new ValidationError(
+			`${label} must be a valid Egyptian mobile number`,
+		);
+	}
+
+	return phone;
+}
+
+function validateName(name, label = "Name") {
+	const value = validateString(name, label, {
+		min: 2,
+		max: 50,
 	});
 
-	if (!/^[0-9]+$/.test(value)) {
-		throw new ValidationError(`${label} must contain only numbers`);
+	const isArabic = /^[\u0600-\u06FF]+(?:[ '-][\u0600-\u06FF]+)*$/.test(value);
+
+	const isEnglish = /^[A-Za-z]+(?:[ '-][A-Za-z]+)*$/.test(value);
+
+	if (!isArabic && !isEnglish) {
+		throw new ValidationError(
+			`${label} must contain Arabic letters only or English letters only`,
+		);
+	}
+
+	return value;
+}
+
+function validateSameNameLanguage(firstName, lastName) {
+	const arabicRegex = /^[\u0600-\u06FF]+(?:[ '-][\u0600-\u06FF]+)*$/;
+	const englishRegex = /^[A-Za-z]+(?:[ '-][A-Za-z]+)*$/;
+
+	const firstNameIsArabic = arabicRegex.test(firstName);
+	const firstNameIsEnglish = englishRegex.test(firstName);
+
+	const lastNameIsArabic = arabicRegex.test(lastName);
+	const lastNameIsEnglish = englishRegex.test(lastName);
+
+	if (
+		(firstNameIsArabic && !lastNameIsArabic) ||
+		(firstNameIsEnglish && !lastNameIsEnglish)
+	) {
+		throw new ValidationError(
+			"First name and last name must use the same language",
+		);
+	}
+}
+
+function validatePassword(password, label = "Password") {
+	const value = validateString(password, label, {
+		min: 8,
+		max: 72,
+	});
+
+	if (!/^[A-Za-z0-9!@#$%^&*()_+\-=\[\]{};':"\\|,.<>/?`~]+$/.test(value)) {
+		throw new ValidationError(`${label} must contain only English characters`);
+	}
+
+	return value;
+}
+
+function validateAddress(address, label = "Address") {
+	const value = validateString(address, label, {
+		min: 5,
+		max: 255,
+	});
+
+	// Must contain at least one Arabic/English letter or number
+	if (!/[A-Za-z\u0600-\u06FF0-9]/.test(value)) {
+		throw new ValidationError(`${label} is invalid`);
+	}
+
+	// Cannot consist only of symbols
+	if (/^[^A-Za-z\u0600-\u06FF0-9]+$/.test(value)) {
+		throw new ValidationError(`${label} is invalid`);
 	}
 
 	return value;
@@ -151,4 +230,8 @@ module.exports = {
 	validateDescription,
 	validatePaymentMethod,
 	validatePhone,
+	validateName,
+	validatePassword,
+	validateAddress,
+	validateSameNameLanguage,
 };

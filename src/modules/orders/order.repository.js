@@ -227,20 +227,6 @@ async function updateOrderStatus(id, status, client = db) {
 	return result.rows[0] ? mapOrder(result.rows[0]) : null;
 }
 
-async function updateOrderPaymentStatus(id, status, client = db) {
-	const result = await client.query(
-		`UPDATE orders
-		SET
-			payment_status = $1,
-			updated_at = CURRENT_TIMESTAMP
-		WHERE id = $2
-		RETURNING *`,
-		[status, id],
-	);
-
-	return result.rows[0] ? mapOrder(result.rows[0]) : null;
-}
-
 async function findOrderByIdForUpdate(id, client) {
 	const result = await client.query(
 		`SELECT *
@@ -318,7 +304,6 @@ module.exports = {
 	findAllOrders,
 	findOrdersByStatus,
 	updateOrderStatus,
-	updateOrderPaymentStatus,
 	findOrderByIdForUpdate,
 	findOrderByStripePaymentIntentId,
 	updateOrderPaymentAndStatus,

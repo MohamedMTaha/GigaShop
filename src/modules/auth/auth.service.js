@@ -1,7 +1,12 @@
 const { signToken } = require("../../utils/jwt");
 const { hashPassword, verifyPassword } = require("../../utils/password");
 
-const { validateString, validateEmail } = require("../../utils/validation");
+const {
+	validateName,
+	validateSameNameLanguage,
+	validateEmail,
+	validatePassword,
+} = require("../../utils/validation");
 
 const userService = require("../users/user.service");
 
@@ -9,21 +14,15 @@ const ConflictError = require("../../errors/ConflictError");
 const UnauthorizedError = require("../../errors/UnauthorizedError");
 
 async function register(firstName, lastName, email, password) {
-	firstName = validateString(firstName, "First name", {
-		min: 2,
-		max: 50,
-	});
+	firstName = validateName(firstName, "First name");
 
-	lastName = validateString(lastName, "Last name", {
-		min: 2,
-		max: 50,
-	});
+	lastName = validateName(lastName, "Last name");
+
+	validateSameNameLanguage(firstName, lastName);
 
 	email = validateEmail(email);
 
-	password = validateString(password, "Password", {
-		min: 8,
-	});
+	password = validatePassword(password);
 
 	const existingUser = await userService.findUserByEmail(email);
 

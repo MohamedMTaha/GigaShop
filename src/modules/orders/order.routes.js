@@ -9,13 +9,21 @@ const router = express.Router();
 
 router.use(authMiddleware);
 
-// Customers
+/*
+ * ============================================
+ * CUSTOMERS
+ * ============================================
+ */
 
 router.get("/my", orderController.getMyOrders);
 
 router.get("/my/:id", orderController.getMyOrder);
 
-// Admins
+/*
+ * ============================================
+ * ADMINS
+ * ============================================
+ */
 
 router.get("/", authorize("admin"), orderController.getAllOrders);
 
@@ -31,20 +39,14 @@ router.get(
 	orderController.getOrdersByUserId,
 );
 
-router.post("/:id/ship", authorize("admin"), orderController.shipOrder);
-
-router.post("/:id/deliver", authorize("admin"), orderController.deliverOrder);
-
 router.get("/:id", authorize("admin"), orderController.getOrderById);
 
 router.post("/:id/confirm", authorize("admin"), orderController.confirmOrder);
 
-router.post("/:id/cancel", authorize("admin"), orderController.cancelOrder);
+router.post("/:id/ship", authorize("admin"), orderController.shipOrder);
 
-router.patch(
-	"/:id/payment-status",
-	authorize("admin"),
-	orderController.updateOrderPaymentStatus,
-);
+router.post("/:id/deliver", authorize("admin"), orderController.deliverOrder);
+
+router.post("/:id/cancel", authorize("admin"), orderController.cancelOrder);
 
 module.exports = router;

@@ -149,6 +149,24 @@ async function updateUserPassword(id, password) {
 	return result.rowCount;
 }
 
+async function findDeletedUsers() {
+	const result = await db.query(
+		`SELECT
+			id,
+			first_name,
+			last_name,
+			email,
+			role,
+			created_at,
+			deleted_at
+		FROM users
+		WHERE deleted_at IS NOT NULL
+		ORDER BY id`,
+	);
+
+	return result.rows.map((row) => mapUser(row));
+}
+
 module.exports = {
 	findUserByEmail,
 	findUserById,
@@ -157,4 +175,5 @@ module.exports = {
 	softDeleteUser,
 	updateUserProfile,
 	updateUserPassword,
+	findDeletedUsers,
 };

@@ -92,6 +92,7 @@ async function deleteShippingRate(id) {
 
 	return result.rowCount;
 }
+
 async function findShippingRateById(id) {
 	const result = await db.query(
 		`SELECT
