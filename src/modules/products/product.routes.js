@@ -6,25 +6,69 @@ const authorize = require("../../middlewares/authorization.middleware");
 
 const router = express.Router();
 
-// Public
+// ============================================
+// Public list
+// ============================================
 
 router.get("/", productController.findProducts);
 
-router.get("/:id", productController.findProductById);
-
+// ============================================
 // Admin
+// ============================================
 
-router.use(authMiddleware);
-router.use(authorize("admin"));
+router.get(
+	"/admin",
+	authMiddleware,
+	authorize("admin"),
+	productController.findAdminProducts,
+);
 
-router.post("/", productController.createProduct);
+router.get(
+	"/admin/:id",
+	authMiddleware,
+	authorize("admin"),
+	productController.findAdminProductById,
+);
 
-router.patch("/:id", productController.updateProduct);
+router.post(
+	"/",
+	authMiddleware,
+	authorize("admin"),
+	productController.createProduct,
+);
 
-router.patch("/:id/stock", productController.updateProductStock);
+router.patch(
+	"/:id",
+	authMiddleware,
+	authorize("admin"),
+	productController.updateProduct,
+);
 
-router.delete("/:id", productController.softDeleteProduct);
+router.patch(
+	"/:id/stock",
+	authMiddleware,
+	authorize("admin"),
+	productController.updateProductStock,
+);
 
-router.patch("/:id/restore", productController.restoreProduct);
+router.delete(
+	"/:id",
+	authMiddleware,
+	authorize("admin"),
+	productController.softDeleteProduct,
+);
+
+router.patch(
+	"/:id/restore",
+	authMiddleware,
+	authorize("admin"),
+	productController.restoreProduct,
+);
+
+// ============================================
+// Public single product
+// ============================================
+
+router.get("/:id", productController.findProductById);
 
 module.exports = router;

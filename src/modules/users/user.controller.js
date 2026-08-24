@@ -130,6 +130,19 @@ async function findUserByIdForAdmin(req, res, next) {
 	}
 }
 
+async function deleteMyAccount(req, res, next) {
+	try {
+		await userService.deleteMyAccount(Number(req.params.id));
+
+		res.status(200).json({
+			success: true,
+			message: "Account deleted successfully",
+		});
+	} catch (error) {
+		next(error);
+	}
+}
+
 module.exports = {
 	getMyProfile,
 	updateMyProfile,

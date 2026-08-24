@@ -194,7 +194,15 @@ function validatePassword(password, label = "Password") {
 	});
 
 	if (!/^[A-Za-z0-9!@#$%^&*()_+\-=\[\]{};':"\\|,.<>/?`~]+$/.test(value)) {
-		throw new ValidationError(`${label} must contain only English characters`);
+		throw new ValidationError(`${label} must use only English letters, numbers, and symbols`);
+	}
+
+	if (!/[A-Za-z]/.test(value)) {
+		throw new ValidationError(`${label} must contain at least one English letter`);
+	}
+
+	if (!/[0-9]/.test(value)) {
+		throw new ValidationError(`${label} must contain at least one number`);
 	}
 
 	return value;

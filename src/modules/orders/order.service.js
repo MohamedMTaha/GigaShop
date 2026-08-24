@@ -90,17 +90,6 @@ async function getOrdersByStatus(status) {
 	return orderRepository.findOrdersByStatus(status);
 }
 
-/*
- * Payment status is no longer changed manually.
- *
- * Card payments are controlled by Stripe.
- * Cash payments automatically become paid when
- * the order is delivered.
- *
- * This function is kept exported for compatibility,
- * but manual payment status updates are intentionally disabled.
- */
-
 async function confirmOrder(orderId) {
 	orderId = validateId(orderId, "Order ID");
 
@@ -308,6 +297,11 @@ async function cancelOrder(orderId) {
 	});
 }
 
+async function cancelMyOrder(userId, orderId) {
+  await getMyOrder(userId, orderId);
+  return cancelOrder(orderId);
+}
+
 module.exports = {
 	getOrderById,
 	getMyOrders,
@@ -319,5 +313,6 @@ module.exports = {
 	confirmOrder,
 	shipOrder,
 	deliverOrder,
-	cancelOrder,
+  cancelOrder,
+  cancelMyOrder,
 };

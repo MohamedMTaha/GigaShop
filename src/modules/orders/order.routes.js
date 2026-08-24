@@ -19,6 +19,8 @@ router.get("/my", orderController.getMyOrders);
 
 router.get("/my/:id", orderController.getMyOrder);
 
+router.post("/user/:id/cancel", orderController.cancelMyOrder);
+
 /*
  * ============================================
  * ADMINS

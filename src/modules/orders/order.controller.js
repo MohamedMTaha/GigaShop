@@ -139,6 +139,23 @@ async function cancelOrder(req, res, next) {
 	}
 }
 
+async function cancelMyOrder(req, res, next) {
+	try {
+		const order = await orderService.cancelMyOrder(
+			Number(req.user.id),
+			Number(req.params.id),
+		);
+
+		return res.status(200).json({
+			success: true,
+			message: "Order cancelled successfully",
+			data: order,
+		});
+	} catch (error) {
+		next(error);
+	}
+}
+
 module.exports = {
 	getMyOrders,
 	getMyOrder,
@@ -149,5 +166,6 @@ module.exports = {
 	confirmOrder,
 	shipOrder,
 	deliverOrder,
-	cancelOrder,
+  cancelOrder,
+  cancelMyOrder,
 };

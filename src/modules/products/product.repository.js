@@ -21,9 +21,13 @@ async function createProduct(data, client = db) {
 
 async function findProductById(id, client = db) {
 	const result = await client.query(
-		`SELECT *
-		FROM products
-		WHERE id = $1`,
+		`SELECT p.*
+		FROM products p
+		INNER JOIN categories c
+			ON c.id = p.category_id
+		WHERE p.id = $1
+		AND p.deleted_at IS NULL
+		AND c.deleted_at IS NULL`,
 		[id],
 	);
 
@@ -43,7 +47,50 @@ async function findProductById(id, client = db) {
 		createdAt: row.created_at,
 		updatedAt: row.updated_at,
 		deletedAt: row.deleted_at,
-		status: row.deleted_at ? "deleted" : "active",
+		status: "active",
+	};
+}
+
+async function findAdminProductById(id, client = db) {
+	const result = await client.query(
+		`SELECT
+			p.*,
+			c.name AS category_name,
+			c.deleted_at AS category_deleted_at
+		FROM products p
+		LEFT JOIN categories c
+			ON c.id = p.category_id
+		WHERE p.id = $1`,
+		[id],
+	);
+
+	const row = result.rows[0];
+
+	if (!row) {
+		return null;
+	}
+
+	return {
+		id: row.id,
+		name: row.name,
+		description: row.description,
+		price: row.price,
+		stock: row.stock,
+		categoryId: row.category_id,
+
+		categoryName: row.category_name,
+
+		categoryStatus: row.category_deleted_at
+			? "deleted"
+			: "active",
+
+		createdAt: row.created_at,
+		updatedAt: row.updated_at,
+		deletedAt: row.deleted_at,
+
+		status: row.deleted_at
+			? "deleted"
+			: "active",
 	};
 }
 
@@ -51,29 +98,20 @@ async function findProducts(filters = {}, client = db) {
 	const conditions = [];
 	const values = [];
 
-	switch (filters.status) {
-		case "deleted":
-			conditions.push("p.deleted_at IS NOT NULL");
-			break;
-
-		case "active":
-			conditions.push("p.deleted_at IS NULL");
-			conditions.push("c.deleted_at IS NULL");
-			break;
-
-		case "all":
-			break;
-
-		default:
-			conditions.push("p.deleted_at IS NULL");
-			conditions.push("c.deleted_at IS NULL");
-	}
+	// Public products:
+	// Product must be active
+	// Category must be active
+	conditions.push("p.deleted_at IS NULL");
+	conditions.push("c.deleted_at IS NULL");
 
 	if (filters.search) {
 		values.push(`%${filters.search}%`);
 
 		conditions.push(
-			`(p.name ILIKE $${values.length} OR p.description ILIKE $${values.length})`,
+			`(
+				p.name ILIKE $${values.length}
+				OR p.description ILIKE $${values.length}
+			)`,
 		);
 	}
 
@@ -96,9 +134,11 @@ async function findProducts(filters = {}, client = db) {
 	}
 
 	const result = await client.query(
-		`SELECT p.*
+		`SELECT
+			p.*
 		FROM products p
-		INNER JOIN categories c ON c.id = p.category_id
+		INNER JOIN categories c
+			ON c.id = p.category_id
 		WHERE ${conditions.join(" AND ")}
 		ORDER BY p.created_at DESC`,
 		values,
@@ -114,7 +154,89 @@ async function findProducts(filters = {}, client = db) {
 		createdAt: row.created_at,
 		updatedAt: row.updated_at,
 		deletedAt: row.deleted_at,
-		status: row.deleted_at ? "deleted" : "active",
+		status: "active",
+	}));
+}
+
+async function findAdminProducts(filters = {}, client = db) {
+	const conditions = [];
+	const values = [];
+
+	if (filters.status === "active") {
+		conditions.push("p.deleted_at IS NULL");
+	}
+
+	if (filters.status === "deleted") {
+		conditions.push("p.deleted_at IS NOT NULL");
+	}
+
+	if (filters.categoryId !== undefined) {
+		values.push(filters.categoryId);
+
+		conditions.push(`p.category_id = $${values.length}`);
+	}
+
+	if (filters.search) {
+		values.push(`%${filters.search}%`);
+
+		conditions.push(
+			`(
+				p.name ILIKE $${values.length}
+				OR p.description ILIKE $${values.length}
+			)`,
+		);
+	}
+
+	if (filters.minPrice !== undefined) {
+		values.push(filters.minPrice);
+
+		conditions.push(`p.price >= $${values.length}`);
+	}
+
+	if (filters.maxPrice !== undefined) {
+		values.push(filters.maxPrice);
+
+		conditions.push(`p.price <= $${values.length}`);
+	}
+
+	const result = await client.query(
+		`SELECT
+			p.*,
+			c.name AS category_name,
+			c.deleted_at AS category_deleted_at
+		FROM products p
+		INNER JOIN categories c
+			ON c.id = p.category_id
+		${
+			conditions.length
+				? `WHERE ${conditions.join(" AND ")}`
+				: ""
+		}
+		ORDER BY p.created_at DESC`,
+		values,
+	);
+
+	return result.rows.map((row) => ({
+		id: row.id,
+		name: row.name,
+		description: row.description,
+		price: row.price,
+		stock: row.stock,
+
+		categoryId: row.category_id,
+		categoryName: row.category_name,
+
+		categoryStatus: row.category_deleted_at
+			? "deleted"
+			: "active",
+
+		createdAt: row.created_at,
+		updatedAt: row.updated_at,
+		deletedAt: row.deleted_at,
+
+		status: row.deleted_at
+			? "deleted"
+			: "active",
 	}));
 }
 
@@ -263,7 +385,9 @@ async function restoreProduct(id, client = db) {
 module.exports = {
 	createProduct,
 	findProductById,
+	findAdminProductById,
 	findProducts,
+	findAdminProducts,
 	updateProduct,
 	updateProductStock,
 	decreaseProductStock,

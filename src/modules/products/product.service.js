@@ -1,4 +1,3 @@
-
 const productRepository = require("./product.repository");
 const categoryRepository = require("../categories/category.repository");
 
@@ -27,19 +26,42 @@ async function findProductById(id) {
 	return product;
 }
 
-async function createProduct(name, description, price, categoryId, stock) {
+async function findAdminProductById(id) {
+	id = validateId(id, "Product ID");
+
+	const product =
+		await productRepository.findAdminProductById(id);
+
+	if (!product) {
+		throw new NotFoundError("Product not found");
+	}
+
+	return product;
+}
+
+async function createProduct(
+	name,
+	description,
+	price,
+	categoryId,
+	stock,
+) {
 	name = validateString(name, "Name", {
 		min: 2,
 		max: 255,
 	});
 
-	description = validateDescription(description, "Description");
+	description = validateDescription(
+		description,
+		"Description",
+	);
 
 	price = validatePrice(price, "Price");
 	categoryId = validateId(categoryId, "Category ID");
 	stock = validateStock(stock, "Stock");
 
-	const category = await categoryRepository.findCategoryById(categoryId);
+	const category =
+		await categoryRepository.findCategoryById(categoryId);
 
 	if (!category) {
 		throw new NotFoundError("Category not found");
@@ -66,18 +88,28 @@ async function updateProduct(id, data) {
 	}
 
 	if (Object.keys(data).length === 0) {
-		throw new ValidationError("At least one field must be provided");
+		throw new ValidationError(
+			"At least one field must be provided",
+		);
 	}
 
-	const allowedFields = ["name", "description", "price", "categoryId"];
+	const allowedFields = [
+		"name",
+		"description",
+		"price",
+		"categoryId",
+	];
 
 	for (const field of Object.keys(data)) {
 		if (!allowedFields.includes(field)) {
-			throw new ValidationError(`Field '${field}' cannot be updated`);
+			throw new ValidationError(
+				`Field '${field}' cannot be updated`,
+			);
 		}
 	}
 
-	const product = await productRepository.findProductById(id);
+	const product =
+		await productRepository.findProductById(id);
 
 	if (!product) {
 		throw new NotFoundError("Product not found");
@@ -95,7 +127,10 @@ async function updateProduct(id, data) {
 	}
 
 	if (data.description !== undefined) {
-		data.description = validateDescription(data.description, "Description");
+		data.description = validateDescription(
+			data.description,
+			"Description",
+		);
 	}
 
 	if (data.price !== undefined) {
@@ -103,9 +138,15 @@ async function updateProduct(id, data) {
 	}
 
 	if (data.categoryId !== undefined) {
-		data.categoryId = validateId(data.categoryId, "Category ID");
+		data.categoryId = validateId(
+			data.categoryId,
+			"Category ID",
+		);
 
-		const category = await categoryRepository.findCategoryById(data.categoryId);
+		const category =
+			await categoryRepository.findCategoryById(
+				data.categoryId,
+			);
 
 		if (!category) {
 			throw new NotFoundError("Category not found");
@@ -116,7 +157,8 @@ async function updateProduct(id, data) {
 		}
 	}
 
-	const updatedProduct = await productRepository.updateProduct(id, data);
+	const updatedProduct =
+		await productRepository.updateProduct(id, data);
 
 	if (!updatedProduct) {
 		throw new ConflictError("Product was not updated");
@@ -129,7 +171,8 @@ async function updateProductStock(id, stock) {
 	id = validateId(id, "Product ID");
 	stock = validateStock(stock, "Stock");
 
-	const product = await productRepository.findProductById(id);
+	const product =
+		await productRepository.findProductById(id);
 
 	if (!product) {
 		throw new NotFoundError("Product not found");
@@ -139,10 +182,13 @@ async function updateProductStock(id, stock) {
 		throw new ConflictError("Product is deleted");
 	}
 
-	const updatedProduct = await productRepository.updateProductStock(id, stock);
+	const updatedProduct =
+		await productRepository.updateProductStock(id, stock);
 
 	if (!updatedProduct) {
-		throw new ConflictError("Product stock was not updated");
+		throw new ConflictError(
+			"Product stock was not updated",
+		);
 	}
 
 	return updatedProduct;
@@ -151,20 +197,32 @@ async function updateProductStock(id, stock) {
 async function softDeleteProduct(id) {
 	id = validateId(id, "Product ID");
 
-	const product = await productRepository.findProductById(id);
+	console.log("DELETE PRODUCT ID:", id);
+
+	const product =
+		await productRepository.findAdminProductById(id);
+
+	console.log("PRODUCT BEFORE DELETE:", product);
 
 	if (!product) {
 		throw new NotFoundError("Product not found");
 	}
 
 	if (product.deletedAt !== null) {
-		throw new ConflictError("Product is already deleted");
+		throw new ConflictError(
+			"Product is already deleted",
+		);
 	}
 
-	const result = await productRepository.softDeleteProduct(id);
+	const result =
+		await productRepository.softDeleteProduct(id);
+
+	console.log("DELETE RESULT:", result);
 
 	if (result === 0) {
-		throw new ConflictError("Product was not deleted");
+		throw new ConflictError(
+			"Product was not deleted",
+		);
 	}
 
 	return result;
@@ -173,20 +231,26 @@ async function softDeleteProduct(id) {
 async function restoreProduct(id) {
 	id = validateId(id, "Product ID");
 
-	const product = await productRepository.findProductById(id);
+	const product =
+		await productRepository.findAdminProductById(id);
 
 	if (!product) {
 		throw new NotFoundError("Product not found");
 	}
 
 	if (product.deletedAt === null) {
-		throw new ConflictError("Product is already active");
+		throw new ConflictError(
+			"Product is already active",
+		);
 	}
 
-	const result = await productRepository.restoreProduct(id);
+	const result =
+		await productRepository.restoreProduct(id);
 
 	if (result === 0) {
-		throw new ConflictError("Product was not restored");
+		throw new ConflictError(
+			"Product was not restored",
+		);
 	}
 
 	return result;
@@ -196,7 +260,11 @@ async function decreaseProductStock(id, quantity, client) {
 	id = validateId(id, "Product ID");
 	quantity = validateQuantity(quantity, "Quantity");
 
-	const product = await productRepository.findProductById(id, client);
+	const product =
+		await productRepository.findProductById(
+			id,
+			client,
+		);
 
 	if (!product) {
 		throw new NotFoundError("Product not found");
@@ -206,14 +274,17 @@ async function decreaseProductStock(id, quantity, client) {
 		throw new ConflictError("Product is deleted");
 	}
 
-	const updatedStock = await productRepository.decreaseProductStock(
-		id,
-		quantity,
-		client,
-	);
+	const updatedStock =
+		await productRepository.decreaseProductStock(
+			id,
+			quantity,
+			client,
+		);
 
 	if (updatedStock === null) {
-		throw new ConflictError(`Not enough stock for product "${product.name}"`);
+		throw new ConflictError(
+			`Not enough stock for product "${product.name}"`,
+		);
 	}
 
 	return updatedStock;
@@ -222,9 +293,73 @@ async function decreaseProductStock(id, quantity, client) {
 async function findProducts(filters = {}) {
 	const validatedFilters = {};
 
+	if (filters.search !== undefined) {
+		if (typeof filters.search !== "string") {
+			throw new ValidationError(
+				"Search must be a string",
+			);
+		}
+
+		const search = filters.search.trim();
+
+		if (search.length === 0) {
+			throw new ValidationError(
+				"Search cannot be empty",
+			);
+		}
+
+		validatedFilters.search = search;
+	}
+
+	if (filters.categoryId !== undefined) {
+		validatedFilters.categoryId = validateId(
+			filters.categoryId,
+			"Category ID",
+		);
+	}
+
+	if (filters.minPrice !== undefined) {
+		validatedFilters.minPrice = validatePrice(
+			filters.minPrice,
+			"Min price",
+		);
+	}
+
+	if (filters.maxPrice !== undefined) {
+		validatedFilters.maxPrice = validatePrice(
+			filters.maxPrice,
+			"Max price",
+		);
+	}
+
+	if (
+		validatedFilters.minPrice !== undefined &&
+		validatedFilters.maxPrice !== undefined &&
+		validatedFilters.minPrice >
+			validatedFilters.maxPrice
+	) {
+		throw new ValidationError(
+			"Min price must be less than or equal to max price",
+		);
+	}
+
+	return productRepository.findProducts(
+		validatedFilters,
+	);
+}
+
+async function findAdminProducts(filters = {}) {
+	const validatedFilters = {};
+
 	if (filters.status !== undefined) {
-		if (!["active", "deleted", "all"].includes(filters.status)) {
-			throw new ValidationError("Status must be 'active', 'deleted', or 'all'");
+		if (
+			!["active", "deleted", "all"].includes(
+				filters.status,
+			)
+		) {
+			throw new ValidationError(
+				"Status must be 'active', 'deleted', or 'all'",
+			);
 		}
 
 		validatedFilters.status = filters.status;
@@ -232,45 +367,62 @@ async function findProducts(filters = {}) {
 
 	if (filters.search !== undefined) {
 		if (typeof filters.search !== "string") {
-			throw new ValidationError("Search must be a string");
+			throw new ValidationError(
+				"Search must be a string",
+			);
 		}
 
 		const search = filters.search.trim();
 
 		if (search.length === 0) {
-			throw new ValidationError("Search cannot be empty");
+			throw new ValidationError(
+				"Search cannot be empty",
+			);
 		}
 
 		validatedFilters.search = search;
 	}
 
 	if (filters.categoryId !== undefined) {
-		validatedFilters.categoryId = validateId(filters.categoryId, "Category ID");
+		validatedFilters.categoryId = validateId(
+			filters.categoryId,
+			"Category ID",
+		);
 	}
 
 	if (filters.minPrice !== undefined) {
-		validatedFilters.minPrice = validatePrice(filters.minPrice, "Min price");
+		validatedFilters.minPrice = validatePrice(
+			filters.minPrice,
+			"Min price",
+		);
 	}
 
 	if (filters.maxPrice !== undefined) {
-		validatedFilters.maxPrice = validatePrice(filters.maxPrice, "Max price");
+		validatedFilters.maxPrice = validatePrice(
+			filters.maxPrice,
+			"Max price",
+		);
 	}
 
 	if (
 		validatedFilters.minPrice !== undefined &&
 		validatedFilters.maxPrice !== undefined &&
-		validatedFilters.minPrice > validatedFilters.maxPrice
+		validatedFilters.minPrice >
+			validatedFilters.maxPrice
 	) {
 		throw new ValidationError(
 			"Min price must be less than or equal to max price",
 		);
 	}
 
-	return productRepository.findProducts(validatedFilters);
+	return productRepository.findAdminProducts(
+		validatedFilters,
+	);
 }
 
 module.exports = {
 	findProductById,
+	findAdminProductById,
 	createProduct,
 	updateProduct,
 	updateProductStock,
@@ -278,4 +430,5 @@ module.exports = {
 	restoreProduct,
 	decreaseProductStock,
 	findProducts,
+	findAdminProducts,
 };
