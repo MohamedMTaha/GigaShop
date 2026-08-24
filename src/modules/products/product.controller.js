@@ -50,7 +50,11 @@ async function findProducts(req, res, next) {
 			maxPrice:
 				req.query.maxPrice !== undefined
 					? Number(req.query.maxPrice)
-					: undefined,
+          : undefined,
+
+      offset: req.query.offset || 0,
+
+      limit: req.query.limit || productService.DEFAULT_PRODUCTS_LIMIT
 		};
 
 		const products =
