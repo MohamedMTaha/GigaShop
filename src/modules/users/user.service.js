@@ -141,7 +141,7 @@ async function updateMyPassword(userId, currentPassword, newPassword) {
   return result;
 }
 
-async function deleteMyAccount(userId) {
+async function softDeleteAccount(userId) {
   userId = validateId(userId, "User ID");
 
   const user = await userRepository.findUserById(userId);
@@ -227,7 +227,7 @@ module.exports = {
   getMyProfile,
   updateMyProfile,
   updateMyPassword,
-  deleteMyAccount,
+  softDeleteAccount,
   findAllUsers,
   findUserById,
   findUserByEmail,

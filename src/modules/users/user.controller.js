@@ -54,7 +54,7 @@ async function updateMyPassword(req, res, next) {
 
 async function deleteMyAccount(req, res, next) {
 	try {
-		await userService.deleteMyAccount(Number(req.user.id));
+		await userService.softDeleteAccount(Number(req.user.id));
 
 		res.status(200).json({
 			success: true,
@@ -130,9 +130,9 @@ async function findUserByIdForAdmin(req, res, next) {
 	}
 }
 
-async function deleteMyAccount(req, res, next) {
+async function deleteAccountById(req, res, next) {
 	try {
-		await userService.deleteMyAccount(Number(req.params.id));
+		await userService.softDeleteAccount(Number(req.params.id));
 
 		res.status(200).json({
 			success: true,
@@ -152,5 +152,6 @@ module.exports = {
 	findUserById,
 	findUserByEmail,
   findDeletedUsers,
-	findUserByIdForAdmin,
+  findUserByIdForAdmin,
+	deleteAccountById,
 };

@@ -24,6 +24,6 @@ router.get("/deleted", authorize("admin"), userController.findDeletedUsers);
 
 router.get("/:id", authorize("admin"), userController.findUserByIdForAdmin);
 
-router.delete("/:id", authorize("admin"), userController.deleteMyAccount);
+router.delete("/:id", authorize("admin"), userController.deleteAccountById);
 
 module.exports = router;
