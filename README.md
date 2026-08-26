@@ -6,6 +6,12 @@ GigaShop provides authentication, product and category management, shopping cart
 
 ---
 
+## 🔗 Related Links
+
+- **Frontend Repository:** [GitHub](https://github.com/MohamedMTaha/GigaShop-Frontend)
+- **Live Demo:** [GigaShop](https://giga-shop-frontend.vercel.app/)
+
+
 ## 🚀 Features
 
 * User registration and authentication using JWT
