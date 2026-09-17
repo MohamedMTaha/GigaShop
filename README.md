@@ -1,6 +1,6 @@
 # GigaShop — E-Commerce Backend
 
-A scalable RESTful API for a full-stack e-commerce application built with Node.js, Express.js, and PostgreSQL.
+A scalable RESTful API for a Backend e-commerce application built with Node.js, Express.js, and PostgreSQL.
 
 GigaShop provides authentication, product and category management, shopping cart functionality, order processing, image management, shipping rates, and payment integration.
 
