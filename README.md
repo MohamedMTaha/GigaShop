@@ -1,36 +1,30 @@
 # GigaShop — E-Commerce Backend
 
-A scalable RESTful API for a Backend e-commerce application built with Node.js, Express.js, and PostgreSQL.
+A scalable RESTful API for a full-stack e-commerce application built with Node.js, Express.js, and PostgreSQL.
 
 GigaShop provides authentication, product and category management, shopping cart functionality, order processing, image management, shipping rates, and payment integration.
 
 ---
 
-## 🔗 Related Links
-
-- **Frontend Repository:** [GitHub](https://github.com/MohamedMTaha/GigaShop-Frontend)
-- **Live Demo:** [GigaShop](https://giga-shop-frontend.vercel.app/)
-
-
 ## 🚀 Features
 
-* User registration and authentication using JWT
-* Role-based authorization for admin operations
-* User profile management
-* Product management
-* Category management
-* Product image upload and management using Cloudinary
-* Soft deletion and restoration of products
-* Shopping cart management
-* Stock validation
-* Checkout and order creation
-* Order management
-* Payment integration using Stripe
-* Shipping rates management
-* PostgreSQL database with SQL migrations
-* Centralized error handling
-* Input validation
-* Layered architecture with separation of concerns
+- User registration and authentication using JWT
+- Role-based authorization for admin operations
+- User profile management
+- Product management
+- Category management
+- Product image upload and management using Cloudinary
+- Soft deletion and restoration of products
+- Shopping cart management
+- Stock validation
+- Checkout and order creation
+- Order management
+- Payment integration using Stripe
+- Shipping rates management
+- PostgreSQL database with SQL migrations
+- Centralized error handling
+- Input validation
+- Layered architecture with separation of concerns
 
 ---
 
@@ -38,21 +32,21 @@ GigaShop provides authentication, product and category management, shopping cart
 
 ### Backend
 
-* Node.js
-* Express.js
-* PostgreSQL
-* JWT
-* bcrypt
-* Stripe
-* Cloudinary
+- Node.js
+- Express.js
+- PostgreSQL
+- JWT
+- bcrypt
+- Stripe
+- Cloudinary
 
 ### Architecture
 
-* Feature-based architecture
-* Controller / Service / Repository pattern
-* Centralized error handling
-* Middleware-based authentication and authorization
-* Database migrations
+- Feature-based architecture
+- Controller / Service / Repository pattern
+- Centralized error handling
+- Middleware-based authentication and authorization
+- Database migrations
 
 ---
 
@@ -110,15 +104,15 @@ The application uses PostgreSQL as its primary database.
 
 The database contains tables for:
 
-* Users
-* Categories
-* Products
-* Product Images
-* Carts
-* Cart Items
-* Orders
-* Order Items
-* Shipping Rates
+- Users
+- Categories
+- Products
+- Product Images
+- Carts
+- Cart Items
+- Orders
+- Order Items
+- Shipping Rates
 
 Database changes are managed through SQL migration files.
 
@@ -239,12 +233,12 @@ This structure keeps responsibilities separated and makes the application easier
 
 The project is structured to support future improvements such as:
 
-* Redis caching
-* Background jobs
-* Additional payment methods
-* More advanced shipping functionality
-* Seller functionality
-* Improved API documentation
+- Redis caching
+- Background jobs
+- Additional payment methods
+- More advanced shipping functionality
+- Seller functionality
+- Improved API documentation
 
 ---
 
@@ -264,4 +258,4 @@ Mohamed Mahmoud
 
 ## 📄 License
 
-This project was built for educational and portfolio purposes.
+This project was built for educational purposes.
